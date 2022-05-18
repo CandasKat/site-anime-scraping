@@ -4,6 +4,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,12 +37,14 @@ public class WebScraping {
             Document htmlForPage = Jsoup.connect(page).get();
             Elements div = htmlForPage.getElementsByClass("td_apercufiche");
             Elements link = div.select("a");
+
             List<String> linkHref = link.eachAttr("href");
 
-            System.out.println(linkHref);
-
-            for (String element : linkHref) {
-                System.out.println("https://anime.icotaku.com/" + element);
+            for (int i = 0; i < linkHref.size() - 1; i++) {
+                if (linkHref.get(i).equals(linkHref.get(i+1))){
+                    linkHref.remove(i);
+                    System.out.println("https://anime.icotaku.com/" + linkHref.get(i));
+                }
             }
 
         }
@@ -68,8 +71,11 @@ public class WebScraping {
             Elements link = div.select("a");
             List<String> linkHref = link.eachAttr("href");
 
-            for (String element : linkHref) {
-                System.out.println("https://manga.icotaku.com/" + element);
+            for (int i = 0; i < linkHref.size() - 1; i++) {
+                if (linkHref.get(i).equals(linkHref.get(i+1))){
+                    linkHref.remove(i);
+                    System.out.println("https://manga.icotaku.com/" + linkHref.get(i));
+                }
             }
 
         }
@@ -96,8 +102,11 @@ public class WebScraping {
             Elements link = div.select("a");
             List<String> linkHref = link.eachAttr("href");
 
-            for (String element : linkHref) {
-                System.out.println("https://novel.icotaku.com/" + element);
+            for (int i = 0; i < linkHref.size() - 1; i++) {
+                if (linkHref.get(i).equals(linkHref.get(i+1))){
+                    linkHref.remove(i);
+                    System.out.println("https://novel.icotaku.com/" + linkHref.get(i));
+                }
             }
 
         }
@@ -124,10 +133,19 @@ public class WebScraping {
             Elements link = div.select("a");
             List<String> linkHref = link.eachAttr("href");
 
-            for (String element : linkHref) {
-                System.out.println("https://drama.icotaku.com/" + element);
+            for (int i = 0; i < linkHref.size(); i++) {
+                if (linkHref.get(i) == linkHref.get(i+1)){
+                    linkHref.remove(i);
+                    System.out.println("https://drama.icotaku.com/" + linkHref.get(i));
+                }
             }
 
         }
+    }
+
+    public static void write(String nom) throws IOException {
+        FileWriter file = new FileWriter(nom + ".csv", true);
+        file.write("id, titre, Categorie\n");
+
     }
 }
