@@ -2,12 +2,11 @@ package com.projetanime.scraping;
 
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
+import com.projetanime.readFile.ReadFiles;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class AnimeScraping {
     public static void main(String[] args) throws IOException {
@@ -137,7 +136,7 @@ public class AnimeScraping {
 
     public static void scrapAllPages(WebClient client, List<String> listLinks) throws IOException {
         FileWriter file = new FileWriter("animes.csv", true);
-        file.write("nom_anime;;nom_anime_alternatif;;nb_episode;;duree_episode;;annee_diffusion\n");
+        file.write("nom_anime;;nom_anime_alternatif;;nb_episode;;duree_episode;;annee_diffusion;;theme;;genre\n");
 
         for (String link: listLinks){
             HtmlPage pageActuel = client.getPage(link);
@@ -159,8 +158,15 @@ public class AnimeScraping {
             for (HtmlElement item : titre){
                 String titreItem = item.getVisibleText();
                 System.out.println("nom_anime " + titreItem);
-                file.write(titreItem + ";;");
-                break;
+                if (titreItem.endsWith("~")){
+                    file.write(titreItem + "  " + ";;");
+                    break;
+                }
+                else {
+                    file.write(titreItem + ";;");
+                    break;
+                }
+
             }
 
             for (HtmlElement item : informations){
@@ -307,6 +313,7 @@ public class AnimeScraping {
                 }
             }
 
+
             for (HtmlElement item : informations){
                 HashMap<String,String> stringList = new HashMap<>();
                 String titreItem = item.getVisibleText();
@@ -317,16 +324,70 @@ public class AnimeScraping {
                 }
 
                 if (!stringList.containsKey("Année de diffusion") || stringList.get("Année de diffusion").equals("?")){
+                    file.write("NULL;;");
+                    stringList.clear();
+                    break;
+                }
+                else {
+                    file.write(stringList.get("Année de diffusion") + ";;");
+                    stringList.clear();
+                    break;
+                }
+            }
+
+            ReadFiles readThemes = new ReadFiles();
+            Map<String, String> themes = readThemes.byBufferedReader("themes.csv");
+            Map<String, String> genres = readThemes.byBufferedReader("genres.csv");
+            for (HtmlElement item : informations){
+                HashMap<String,String> stringList = new HashMap<>();
+                String titreItem = item.getVisibleText();
+                String[] listItems = titreItem.split("\n");
+                for (int i = 0; i < listItems.length; i++){
+                    String[] itemforMap = listItems[i].split(" : ");
+                    stringList.put(itemforMap[0], itemforMap[1]);
+                }
+
+                if (!stringList.containsKey("Thème(s)") || stringList.get("Thème(s)").equals("?")){
+                    file.write("NULL;;");
+                    stringList.clear();
+                    break;
+                }
+                else {
+                    for (int i = 0; i < themes.size(); i++){
+                        if (themes.containsValue(stringList.get("Thème(s)"))){
+                            file.write(readThemes.getKeys(themes,stringList.get("Thème(s)")) + ";;");
+                        }
+                    }
+
+                }
+            }
+
+            for (HtmlElement item : informations){
+                HashMap<String,String> stringList = new HashMap<>();
+                String titreItem = item.getVisibleText();
+                String[] listItems = titreItem.split("\n");
+                for (int i = 0; i < listItems.length; i++){
+                    String[] itemforMap = listItems[i].split(" : ");
+                    stringList.put(itemforMap[0], itemforMap[1]);
+                }
+
+                if (!stringList.containsKey("Genre(s)") || stringList.get("Genre(s)").equals("?")){
                     file.write("NULL\n");
                     stringList.clear();
                     break;
                 }
                 else {
-                    file.write(stringList.get("Année de diffusion") + "\n");
-                    stringList.clear();
-                    break;
+                    for (int i = 0; i < genres.size(); i++){
+                        if (genres.containsValue(stringList.get("Genre(s)"))){
+                            ArrayList<String> listgenre = new ArrayList<>(Collections.singleton(stringList.get("Genre(s)")));
+                            file.write(readThemes.getKeys(genres,listgenre.get(i)) + "\n");
+                        }
+                    }
+
                 }
             }
+
+
         }
         file.close();
     }
