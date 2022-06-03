@@ -353,12 +353,30 @@ public class AnimeScraping {
                     break;
                 }
                 else {
-                    for (int i = 0; i < themes.size(); i++){
-                        if (themes.containsValue(stringList.get("Thème(s)"))){
-                            file.write(readThemes.getKeys(themes,stringList.get("Thème(s)")) + ";;");
+                    String[] listValue = stringList.get("Thème(s)").split(", ");
+                    List<String> listTheme = new LinkedList<>(Arrays.asList(listValue));
+                    for (int i = 0; i < listTheme.size(); i++){
+                        if (i != 0 && listTheme.get(i).equals(listTheme.get(i-1))){
+                            listTheme.remove(i);
+                            continue;
+                        }
+                        if (themes.containsValue(listTheme.get(i))){
+                            String temptheme = String.valueOf(readThemes.getKeys(themes,listTheme.get(i)));
+                            temptheme = temptheme.replaceAll("\\[", "");
+                            temptheme = temptheme.replaceAll("\\]", "");
+                            if (listTheme.size() <= 1){
+
+                                file.write(temptheme + ";;");
+                                break;
+                            }
+                            else {
+                                file.write(temptheme + " ");
+                                if (listTheme.size() - 1 == listTheme.indexOf(listTheme.get(i))){
+                                    file.write(";;");
+                                }
+                            }
                         }
                     }
-
                 }
             }
 
@@ -377,17 +395,32 @@ public class AnimeScraping {
                     break;
                 }
                 else {
-                    for (int i = 0; i < genres.size(); i++){
-                        if (genres.containsValue(stringList.get("Genre(s)"))){
-                            ArrayList<String> listgenre = new ArrayList<>(Collections.singleton(stringList.get("Genre(s)")));
-                            file.write(readThemes.getKeys(genres,listgenre.get(i)) + "\n");
+                    String[] listValue = stringList.get("Genre(s)").split(", ");
+                    List<String> listgenres = new LinkedList<>(Arrays.asList(listValue));
+
+                    for (int i = 0; i < listgenres.size(); i++){
+                        if (i != 0 && listgenres.get(i).equals(listgenres.get(i-1))){
+                            listgenres.remove(i);
+                            continue;
+                        }
+                        if (genres.containsValue(listgenres.get(i))){
+                            String tempgenre = String.valueOf(readThemes.getKeys(genres,listgenres.get(i)));
+                            tempgenre = tempgenre.replaceAll("\\[", "");
+                            tempgenre = tempgenre.replaceAll("\\]", "");
+                            if (listgenres.size() <= 1){
+                                file.write(tempgenre + "\n");
+                                break;
+                            }
+                            else {
+                                file.write(tempgenre + " ");
+                                if (listgenres.size() - 1  == listgenres.indexOf(listgenres.get(i))){
+                                    file.write("\n");
+                                }
+                            }
                         }
                     }
-
                 }
             }
-
-
         }
         file.close();
     }
