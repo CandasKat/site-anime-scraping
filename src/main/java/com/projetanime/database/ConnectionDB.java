@@ -3,6 +3,9 @@ package com.projetanime.database;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ConnectionDB {
     public static void main(String[] args) throws SQLException {
@@ -182,8 +185,11 @@ public class ConnectionDB {
                 String nb_episode = data[2];
                 String duree_episode = data[3];
                 String annee_diffusion = data[4];
-                String[] theme_id = data[5].split(" ");
-                String[] genre_id = data[6].split(" ");
+                String theme_id = data[5];
+                String genre_id = data[6];
+
+
+
 
                 preparedStatement.setString(1,nom_anime);
                 if (nom_anime_alternatif.equals("NULL")){
@@ -206,19 +212,18 @@ public class ConnectionDB {
                 }else {
                     preparedStatement.setObject(5,annee_diffusion);                }
 
-                for (int i = 0; i < theme_id.length; i++){
-                    if (theme_id[i].equals("NULL")){
-                        preparedStatement.setNull(6,Types.NULL);
-                    }else {
-                        preparedStatement.setInt(6, Integer.parseInt(theme_id[i]));
-                    }
+
+                if (theme_id.equals("NULL")){
+                    preparedStatement.setNull(6,Types.NULL);
+                }else {
+                    preparedStatement.setInt(6, Integer.parseInt(theme_id));
                 }
-                for (int i = 0; i < genre_id.length; i++){
-                    if (genre_id[i].equals("NULL")){
-                        preparedStatement.setNull(7, Types.NULL);
-                    } else {
-                        preparedStatement.setInt(7, Integer.parseInt(genre_id[i]));
-                    }
+
+
+                if (genre_id.equals("NULL")){
+                    preparedStatement.setNull(7, Types.NULL);
+                } else {
+                    preparedStatement.setInt(7, Integer.parseInt(genre_id));
                 }
 
 
@@ -234,7 +239,7 @@ public class ConnectionDB {
             con.commit();
             con.close();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
 
     }

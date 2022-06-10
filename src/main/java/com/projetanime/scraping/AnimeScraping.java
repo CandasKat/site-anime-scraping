@@ -137,7 +137,7 @@ public class AnimeScraping {
     public static void scrapAllPages(WebClient client, List<String> listLinks) throws IOException {
         FileWriter file = new FileWriter("animes.csv", true);
         file.write("nom_anime;;nom_anime_alternatif;;nb_episode;;duree_episode;;annee_diffusion;;theme;;genre\n");
-
+        StringBuilder stringBuilder = new StringBuilder();
         for (String link: listLinks){
             HtmlPage pageActuel = client.getPage(link);
             List<HtmlElement> titre = pageActuel.getByXPath("//*[@id=\"fiche_entete\"]/div/h1");
@@ -158,14 +158,7 @@ public class AnimeScraping {
             for (HtmlElement item : titre){
                 String titreItem = item.getVisibleText();
                 System.out.println("nom_anime " + titreItem);
-                if (titreItem.endsWith("~")){
-                    file.write(titreItem + "  " + ";;");
-                    break;
-                }
-                else {
-                    file.write(titreItem + ";;");
-                    break;
-                }
+                stringBuilder.append(titreItem+";;");
 
             }
 
@@ -179,12 +172,12 @@ public class AnimeScraping {
                 }
 
                 if (!stringList.containsKey("Titre alternatif") || stringList.get("Titre alternatif").equals("?")){
-                    file.write("NULL;;");
+                    stringBuilder.append("NULL;;");
                     stringList.clear();
                     break;
                 }
                 else {
-                    file.write(stringList.get("Titre alternatif") + ";;");
+                    stringBuilder.append(stringList.get("Titre alternatif") + ";;");
                     stringList.clear();
                     break;
                 }
@@ -201,42 +194,42 @@ public class AnimeScraping {
                 }
 
                 if ((!stringList.containsKey("Nombre d'OAV") && !stringList.containsKey("Nombre d'épisode") && !stringList.containsKey("Nombre de film"))){
-                    file.write("NULL;;");
+                    stringBuilder.append("NULL;;");
                     stringList.clear();
                     break;
                 }
                 else if (stringList.containsKey("Nombre d'OAV")){
                     if (stringList.get("Nombre d'OAV").equals("?")){
-                        file.write("NULL;;");
+                        stringBuilder.append("NULL;;");
                         stringList.clear();
                         break;
                     }
                     else {
-                        file.write(stringList.get("Nombre d'OAV") + ";;");
+                        stringBuilder.append(stringList.get("Nombre d'OAV") + ";;");
                         stringList.clear();
                         break;
                     }
                 }
                  else if (stringList.containsKey("Nombre d'épisode")) {
                     if (stringList.get("Nombre d'épisode").equals("?")){
-                        file.write("NULL;;");
+                        stringBuilder.append("NULL;;");
                         stringList.clear();
                         break;
                     }
                     else{
-                        file.write(stringList.get("Nombre d'épisode") + ";;");
+                        stringBuilder.append(stringList.get("Nombre d'épisode") + ";;");
                         stringList.clear();
                         break;
                     }
                 }
                  else if (stringList.containsKey("Nombre de film")){
                     if (stringList.get("Nombre de film").equals("?")) {
-                        file.write("NULL;;");
+                        stringBuilder.append("NULL;;");
                         stringList.clear();
                         break;
                     }
                     else {
-                        file.write(stringList.get("Nombre de film") + ";;");
+                        stringBuilder.append(stringList.get("Nombre de film") + ";;");
                         stringList.clear();
                         break;
                     }
@@ -253,23 +246,23 @@ public class AnimeScraping {
                 }
 
                 if ((!stringList.containsKey("Durée d'un OAV") && !stringList.containsKey("Durée d'un épisode") && !stringList.containsKey("Durée d'un film"))){
-                    file.write("NULL;;");
+                    stringBuilder.append("NULL;;");
                     stringList.clear();
                     break;
                 }
                 else if (stringList.containsKey("Durée d'un OAV")){
                     if (stringList.get("Durée d'un OAV").equals("?") || stringList.get("Durée d'un OAV").startsWith("?")){
-                        file.write("NULL;;");
+                        stringBuilder.append("NULL;;");
                         stringList.clear();
                         break;
                     }
                     else {
                         if (stringList.get("Durée d'un OAV").endsWith("mins")){
                             String[] mins = stringList.get("Durée d'un OAV").split(" ");
-                            file.write(mins[0] + ";;");
+                            stringBuilder.append(mins[0] + ";;");
                         }
                         else {
-                            file.write(stringList.get("Durée d'un OAV") + ";;");
+                            stringBuilder.append(stringList.get("Durée d'un OAV") + ";;");
                             stringList.clear();
                             break;
                         }
@@ -277,17 +270,17 @@ public class AnimeScraping {
                 }
                 else if (stringList.containsKey("Durée d'un épisode")) {
                     if (stringList.get("Durée d'un épisode").equals("?") || stringList.get("Durée d'un épisode").startsWith("?")){
-                        file.write("NULL;;");
+                        stringBuilder.append("NULL;;");
                         stringList.clear();
                         break;
                     }
                     else {
                         if (stringList.get("Durée d'un épisode").endsWith("mins")){
                             String[] mins = stringList.get("Durée d'un épisode").split(" ");
-                            file.write(mins[0] + ";;");
+                            stringBuilder.append(mins[0] + ";;");
                         }
                         else {
-                            file.write(stringList.get("Durée d'un épisode") + ";;");
+                            stringBuilder.append(stringList.get("Durée d'un épisode") + ";;");
                             stringList.clear();
                             break;
                         }
@@ -295,17 +288,17 @@ public class AnimeScraping {
                 }
                 else if (stringList.containsKey("Durée d'un film")){
                     if (stringList.get("Durée d'un film").equals("?") || stringList.get("Durée d'un film").startsWith("?")) {
-                        file.write("NULL;;");
+                        stringBuilder.append("NULL;;");
                         stringList.clear();
                         break;
                     }
                     else {
                         if (stringList.get("Durée d'un film").endsWith("mins")){
                             String[] mins = stringList.get("Durée d'un film").split(" ");
-                            file.write(mins[0] + ";;");
+                            stringBuilder.append(mins[0] + ";;");
                         }
                         else {
-                            file.write(stringList.get("Durée d'un film") + ";;");
+                            stringBuilder.append(stringList.get("Durée d'un film") + ";;");
                             stringList.clear();
                             break;
                         }
@@ -324,12 +317,12 @@ public class AnimeScraping {
                 }
 
                 if (!stringList.containsKey("Année de diffusion") || stringList.get("Année de diffusion").equals("?")){
-                    file.write("NULL;;");
+                    stringBuilder.append("NULL;;");
                     stringList.clear();
                     break;
                 }
                 else {
-                    file.write(stringList.get("Année de diffusion") + ";;");
+                    stringBuilder.append(stringList.get("Année de diffusion") + ";;");
                     stringList.clear();
                     break;
                 }
@@ -338,6 +331,8 @@ public class AnimeScraping {
             ReadFiles readThemes = new ReadFiles();
             Map<String, String> themes = readThemes.byBufferedReader("themes.csv");
             Map<String, String> genres = readThemes.byBufferedReader("genres.csv");
+            List<String> themeslistes = new ArrayList<>();
+            List<String> genreslistes = new ArrayList<>();
             for (HtmlElement item : informations){
                 HashMap<String,String> stringList = new HashMap<>();
                 String titreItem = item.getVisibleText();
@@ -348,7 +343,7 @@ public class AnimeScraping {
                 }
 
                 if (!stringList.containsKey("Thème(s)") || stringList.get("Thème(s)").equals("?")){
-                    file.write("NULL;;");
+                    themeslistes.add("NULL");
                     stringList.clear();
                     break;
                 }
@@ -366,14 +361,12 @@ public class AnimeScraping {
                             temptheme = temptheme.replaceAll("\\]", "");
                             if (listTheme.size() <= 1){
 
-                                file.write(temptheme + ";;");
+                                themeslistes.add(temptheme);
                                 break;
                             }
                             else {
-                                file.write(temptheme + " ");
-                                if (listTheme.size() - 1 == listTheme.indexOf(listTheme.get(i))){
-                                    file.write(";;");
-                                }
+                                themeslistes.add(temptheme);
+
                             }
                         }
                     }
@@ -390,7 +383,7 @@ public class AnimeScraping {
                 }
 
                 if (!stringList.containsKey("Genre(s)") || stringList.get("Genre(s)").equals("?")){
-                    file.write("NULL\n");
+                    genreslistes.add("NULL");
                     stringList.clear();
                     break;
                 }
@@ -408,19 +401,32 @@ public class AnimeScraping {
                             tempgenre = tempgenre.replaceAll("\\[", "");
                             tempgenre = tempgenre.replaceAll("\\]", "");
                             if (listgenres.size() <= 1){
-                                file.write(tempgenre + "\n");
+                                genreslistes.add(tempgenre);
                                 break;
                             }
                             else {
-                                file.write(tempgenre + " ");
-                                if (listgenres.size() - 1  == listgenres.indexOf(listgenres.get(i))){
-                                    file.write("\n");
-                                }
+                                genreslistes.add(tempgenre);
                             }
                         }
                     }
+
                 }
             }
+            StringBuilder base = new StringBuilder();
+            base.append(stringBuilder);
+            StringBuilder themesGenres = new StringBuilder();
+            StringBuilder finaux = new StringBuilder();
+            for (int i = 0 ; i < themeslistes.size(); i++){
+                for (int j = 0; j < genreslistes.size(); j++){
+                    themesGenres.append(themeslistes.get(i) + ";;" + genreslistes.get(j));
+                    finaux.append(base);
+                    finaux.append(themesGenres  + "\n");
+                    file.write(String.valueOf(finaux));
+                    themesGenres.delete(0,themesGenres.length());
+                    finaux.delete(0, finaux.length());
+                }
+            }
+            base.delete(0,base.length());
         }
         file.close();
     }
