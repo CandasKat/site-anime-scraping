@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.projetanime.readFile.ReadFiles;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
@@ -11,8 +12,7 @@ import java.util.*;
 public class AnimeScraping {
     public static void main(String[] args) throws IOException {
         List<String> allAnimes = new ArrayList<>();
-        List<String> allMangas = new ArrayList<>();
-        List<String> allNovels = new ArrayList<>();
+
         List<String> allDramas = new ArrayList<>();
 
         WebClient client = new WebClient();
@@ -20,14 +20,14 @@ public class AnimeScraping {
         client.getOptions().setJavaScriptEnabled(false);
 
         String searchUrlForAnimes = "https://anime.icotaku.com/animes.html?filter=all";
-        //String searchUrlForMangas = "https://manga.icotaku.com/mangas.html?filter=all";
-        //String searchUrlForNovels = "https://novel.icotaku.com/novels.html?filter=all";
+
+
         //String searchUrlForDramas = "https://drama.icotaku.com/dramas.html?filter=all";
 
         anime_parser(client, searchUrlForAnimes, allAnimes);
         scrapAllPages(client,allAnimes);
-        //mangas_parser(client, searchUrlForMangas, allMangas);
-        //novels_parser(client, searchUrlForNovels, allNovels);
+
+
         //dramas_parser(client, searchUrlForDramas, allDramas);
     }
 
@@ -84,61 +84,20 @@ public class AnimeScraping {
         }
     }
 
-    public static void mangas_parser(WebClient client, String searchUrl, List<String> allMangas) throws IOException {
-        int numeroLastPage = 0;
-        HtmlPage page = client.getPage(searchUrl);
 
-        List<HtmlElement> dernierPage = page.getByXPath("//*[@id=\"page\"]/div[4]/div/a[8]");
-        for (HtmlElement dernier : dernierPage){
-            HtmlAnchor dernierAnchor = (HtmlAnchor) dernier;
-            String[] numero = String.valueOf(dernierAnchor.getHrefAttribute()).split("page=");
-            numero = numero[1].split("\"");
-            numeroLastPage = Integer.parseInt(numero[0]);
-        }
-
-        for (int i = 1;i <= numeroLastPage;i++){
-            String searchAllUrls = searchUrl + "&page=" + i;
-            HtmlPage allPages = client.getPage(searchAllUrls);
-
-            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/a[1]");
-            for (HtmlElement item : items){
-                HtmlAnchor itemAnchor = (HtmlAnchor) item;
-                String itemUrl = "https://manga.icotaku.com/" + itemAnchor.getHrefAttribute();
-                allMangas.add(itemUrl);
-            }
-        }
-    }
-
-    public static void novels_parser(WebClient client, String searchUrl, List<String> allNovels) throws IOException {
-        int numeroLastPage = 0;
-        HtmlPage page = client.getPage(searchUrl);
-
-        List<HtmlElement> dernierPage = page.getByXPath("//*[@id=\"page\"]/div[4]/div/a[8]");
-        for (HtmlElement dernier : dernierPage){
-            HtmlAnchor dernierAnchor = (HtmlAnchor) dernier;
-            String[] numero = String.valueOf(dernierAnchor.getHrefAttribute()).split("page=");
-            numero = numero[1].split("\"");
-            numeroLastPage = Integer.parseInt(numero[0]);
-        }
-
-        for (int i = 1;i <= numeroLastPage;i++){
-            String searchAllUrls = searchUrl + "&page=" + i;
-            HtmlPage allPages = client.getPage(searchAllUrls);
-
-            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/a[1]");
-            for (HtmlElement item : items){
-                HtmlAnchor itemAnchor = (HtmlAnchor) item;
-                String itemUrl = "https://novel.icotaku.com/" + itemAnchor.getHrefAttribute();
-                allNovels.add(itemUrl);
-            }
-        }
-    }
 
     public static void scrapAllPages(WebClient client, List<String> listLinks) throws IOException {
         FileWriter file = new FileWriter("animes.csv", true);
-        file.write("nom_anime;;nom_anime_alternatif;;nb_episode;;duree_episode;;annee_diffusion;;theme;;genre\n");
+        File file1 = new File("animesThemesGenres.csv");
+        FileWriter genreTheme = new FileWriter(file1);
+
+        file.write("anime_id;;nom_anime;;nom_anime_alternatif;;nb_episode;;duree_episode;;annee_diffusion;;studio_id\n");
+        genreTheme.write("anime_id;;theme;;genre\n");
         StringBuilder stringBuilder = new StringBuilder();
+
+        int id = 1;
         for (String link: listLinks){
+            stringBuilder.delete(0,stringBuilder.length());
             HtmlPage pageActuel = client.getPage(link);
             List<HtmlElement> titre = pageActuel.getByXPath("//*[@id=\"fiche_entete\"]/div/h1");
             List<HtmlElement> informations;
@@ -154,7 +113,7 @@ public class AnimeScraping {
                 informations = pageActuel.getByXPath("//*[@id=\"page\"]/div[4]/div[2]/div");
             }
 
-
+            stringBuilder.append(id + ";;");
             for (HtmlElement item : titre){
                 String titreItem = item.getVisibleText();
                 System.out.println("nom_anime " + titreItem);
@@ -328,9 +287,51 @@ public class AnimeScraping {
                 }
             }
 
+            ReadFiles readstudios = new ReadFiles();
+            Map<String, String> studios = readstudios.byBufferedReader("studio.csv");
+
+            List<String> studioslistes = new ArrayList<>();
+            for (HtmlElement item : informations){
+                HashMap<String,String> stringList = new HashMap<>();
+                String titreItem = item.getVisibleText();
+                String[] listItems = titreItem.split("\n");
+                for (int i = 0; i < listItems.length; i++){
+                    String[] itemforMap = listItems[i].split(" : ");
+                    stringList.put(itemforMap[0], itemforMap[1]);
+                }
+
+                if (!stringList.containsKey("Studio(s) d'animation") || stringList.get("Studio(s) d'animation").equals("?")){
+                    stringBuilder.append("NULL\n");
+                    stringList.clear();
+                    break;
+                }
+                else {
+                    String[] listValue = stringList.get("Studio(s) d'animation").split(", ");
+                    List<String> liststudio = new LinkedList<>(Arrays.asList(listValue));
+                    for (int i = 0; i < liststudio.size(); i++) {
+                        if (i != 0 && liststudio.get(i).equals(liststudio.get(i - 1))) {
+                            liststudio.remove(i);
+                            continue;
+                        }
+                        if (studios.containsValue(liststudio.get(i))) {
+                            String tempstudio = String.valueOf(readstudios.getKeys(studios, liststudio.get(i)));
+                            tempstudio = tempstudio.replaceAll("\\[", "");
+                            tempstudio = tempstudio.replaceAll("\\]", "");
+                            stringBuilder.append(tempstudio + "\n");
+
+                            break;
+
+                        }
+                    }
+                }
+            }
+
+
+
             ReadFiles readThemes = new ReadFiles();
             Map<String, String> themes = readThemes.byBufferedReader("themes.csv");
             Map<String, String> genres = readThemes.byBufferedReader("genres.csv");
+
             List<String> themeslistes = new ArrayList<>();
             List<String> genreslistes = new ArrayList<>();
             for (HtmlElement item : informations){
@@ -412,22 +413,25 @@ public class AnimeScraping {
 
                 }
             }
-            StringBuilder base = new StringBuilder();
-            base.append(stringBuilder);
+
             StringBuilder themesGenres = new StringBuilder();
             StringBuilder finaux = new StringBuilder();
             for (int i = 0 ; i < themeslistes.size(); i++){
                 for (int j = 0; j < genreslistes.size(); j++){
                     themesGenres.append(themeslistes.get(i) + ";;" + genreslistes.get(j));
-                    finaux.append(base);
+                    finaux.append(id + ";;");
                     finaux.append(themesGenres  + "\n");
-                    file.write(String.valueOf(finaux));
+                    genreTheme.write(String.valueOf(finaux));
                     themesGenres.delete(0,themesGenres.length());
                     finaux.delete(0, finaux.length());
                 }
+
             }
-            base.delete(0,base.length());
+            id++;
+            file.write(String.valueOf(stringBuilder));
         }
+        genreTheme.close();
         file.close();
+
     }
 }

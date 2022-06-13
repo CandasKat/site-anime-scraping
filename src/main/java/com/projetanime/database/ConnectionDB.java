@@ -3,14 +3,14 @@ package com.projetanime.database;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.text.DateFormat;
 
 public class ConnectionDB {
     public static void main(String[] args) throws SQLException {
         ConnectionDB connectionDB = new ConnectionDB();
-        connectionDB.importerAnime();
+        //connectionDB.importerStudio();
+        //connectionDB.importerAnime();
+        connectionDB.importerCommune();
 
     }
     private static Connection con = null;
@@ -36,16 +36,26 @@ public class ConnectionDB {
 
     public void createTables(){
         String queryForAnime = "CREATE TABLE IF NOT EXISTS animes (" +
-                "id_anime INT AUTO_INCREMENT PRIMARY KEY," +
-                "nom_anime VARCHAR(150)," +
-                "nom_anime_alternatif VARCHAR(150)," +
+                "anime_id INT AUTO_INCREMENT PRIMARY KEY," +
+                "nom_anime VARCHAR(250)," +
+                "nom_anime_alternatif VARCHAR(250)," +
                 "nb_episode INT," +
                 "duree_episode INT," +
                 "annee_diffusion DATE," +
-                "theme_id INT," +
-                "genre_id INT," +
-                "FOREIGN KEY (theme_id) REFERENCES themes(theme_id)," +
-                "FOREIGN KEY (genre_id) REFERENCES genres(genre_id))";
+                "studio_id INT," +
+                "FOREIGN KEY (studio_id) REFERENCES studios(studio_id))";
+
+        String queryForStudios = "CREATE TABLE IF NOT EXISTS studios (" +
+                "studio_id INT AUTO_INCREMENT PRIMARY KEY," +
+                "studio VARCHAR(150))";
+
+        String queryForTablesCommunes = "CREATE TABLE IF NOT EXISTS animes_themes_genres (" +
+                "anime_id INT," +
+                "theme INT," +
+                "genre INT," +
+                "FOREIGN KEY (anime_id) REFERENCES animes(anime_id)," +
+                "FOREIGN KEY (theme) REFERENCES themes(theme_id)," +
+                "FOREIGN KEY (genre) REFERENCES genres(genre_id))";
 
         String queryForEditor = "CREATE TABLE IF NOT EXISTS editors (" +
                 "editor_id INT AUTO_INCREMENT PRIMARY KEY," +
@@ -62,8 +72,10 @@ public class ConnectionDB {
             statement = con.createStatement();
             statement.execute(queryForThemes);
             statement.execute(queryForGenres);
+            statement.execute(queryForStudios);
             statement.execute(queryForEditor);
             statement.execute(queryForAnime);
+            statement.execute(queryForTablesCommunes);
         } catch (SQLException e){
             e.printStackTrace();
         }
@@ -158,6 +170,50 @@ public class ConnectionDB {
 
     }
 
+    public void importerStudio() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvGenre = "studio.csv";
+        int batchSize = 20;
+
+        try {
+            String sql = "INSERT INTO studios(studio_id, studio) VALUES(?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvGenre));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";");
+                String studio_id = data[0];
+                String studio = data[1];
+                preparedStatement.setString(1,studio_id);
+                preparedStatement.setString(2, studio);
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     public void importerAnime() throws SQLException {
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
@@ -171,7 +227,7 @@ public class ConnectionDB {
         int batchSize = 20;
 
         try {
-            String sql = "INSERT INTO animes(nom_anime, nom_anime_alternatif, nb_episode, duree_episode, annee_diffusion, theme_id, genre_id) VALUES(?,?,?,?,?,?,?)";
+            String sql = "INSERT INTO animes(anime_id, nom_anime, nom_anime_alternatif, nb_episode, duree_episode, annee_diffusion, studio_id) VALUES(?,?,?,?,?,?,?)";
             preparedStatement = con.prepareStatement(sql);
             BufferedReader lineReader = new BufferedReader(new FileReader(csvAnime));
             String lineText = null;
@@ -180,51 +236,53 @@ public class ConnectionDB {
 
             while ((lineText = lineReader.readLine()) != null){
                 String[] data = lineText.split(";;");
-                String nom_anime = data[0];
-                String nom_anime_alternatif = data[1];
-                String nb_episode = data[2];
-                String duree_episode = data[3];
-                String annee_diffusion = data[4];
-                String theme_id = data[5];
-                String genre_id = data[6];
+                String anime_id = data[0];
+                String nom_anime = data[1];
+                String nom_anime_alternatif = data[2];
+                String nb_episode = data[3];
+                String duree_episode = data[4];
+                String annee_diffusion = data[5];
+                String studio_animation = data[6];
 
 
 
-
-                preparedStatement.setString(1,nom_anime);
-                if (nom_anime_alternatif.equals("NULL")){
-                    preparedStatement.setNull(2,Types.NULL);
+                if (duree_episode.equals("NULL")){
+                    preparedStatement.setNull(1,Types.NULL);
                 }else {
-                    preparedStatement.setString(2, nom_anime_alternatif);
+                    preparedStatement.setInt(1, Integer.parseInt(anime_id));
                 }
-                if (nb_episode.equals("NULL")){
+
+                preparedStatement.setString(2,nom_anime);
+                if (nom_anime_alternatif.equals("NULL")){
                     preparedStatement.setNull(3,Types.NULL);
                 }else {
-                    preparedStatement.setInt(3, Integer.parseInt(nb_episode));
+                    preparedStatement.setString(3, nom_anime_alternatif);
                 }
-                if (duree_episode.equals("NULL")){
+                if (nb_episode.equals("NULL")){
                     preparedStatement.setNull(4,Types.NULL);
                 }else {
-                    preparedStatement.setInt(4, Integer.parseInt(duree_episode));
+                    preparedStatement.setInt(4, Integer.parseInt(nb_episode));
                 }
-                if (annee_diffusion.equals("NULL")){
+                if (duree_episode.equals("NULL")){
                     preparedStatement.setNull(5,Types.NULL);
                 }else {
-                    preparedStatement.setObject(5,annee_diffusion);                }
+                    preparedStatement.setInt(5, Integer.parseInt(duree_episode));
+                }
 
 
-                if (theme_id.equals("NULL")){
+                if (annee_diffusion.equals("NULL")){
                     preparedStatement.setNull(6,Types.NULL);
                 }else {
-                    preparedStatement.setInt(6, Integer.parseInt(theme_id));
-                }
+                    Date date = new Date(Long.parseLong(annee_diffusion));
+                    preparedStatement.setDate(6, date);                }
 
 
-                if (genre_id.equals("NULL")){
-                    preparedStatement.setNull(7, Types.NULL);
-                } else {
-                    preparedStatement.setInt(7, Integer.parseInt(genre_id));
+                if (studio_animation.equals("NULL")){
+                    preparedStatement.setNull(7,Types.NULL);
+                }else {
+                    preparedStatement.setInt(7, Integer.parseInt(studio_animation));
                 }
+
 
 
                 preparedStatement.addBatch();
@@ -243,6 +301,69 @@ public class ConnectionDB {
         }
 
     }
+    public void importerCommune() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvGenre = "animesThemesGenres.csv";
+        int batchSize = 20;
+
+        try {
+            String sql = "INSERT INTO animes_themes_genres (anime_id, theme, genre) VALUES(?,?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvGenre));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";;");
+                String anime_id = data[0];
+                String theme = data[1];
+                String genre = data[2];
+
+                if (anime_id.equals("NULL")){
+                    preparedStatement.setNull(1, Types.NULL);
+                }
+                else {
+                    preparedStatement.setInt(1, Integer.parseInt(anime_id));
+                }
+                if (theme.equals("NULL")){
+                    preparedStatement.setNull(2, Types.NULL);
+                }
+                else {
+                    preparedStatement.setInt(2, Integer.parseInt(theme));
+                }
+                if (genre.equals("NULL")){
+                    preparedStatement.setNull(3, Types.NULL);
+                }
+                else {
+                    preparedStatement.setInt(3, Integer.parseInt(genre));
+                }
+
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
 
     static ResultSet selectAll() {
         try {

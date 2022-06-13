@@ -16,10 +16,10 @@ public class StudioScrap {
         client.getOptions().setCssEnabled(false);
         client.getOptions().setJavaScriptEnabled(false);
 
-        String urlThemees = "https://anime.icotaku.com/studios.html#";
+        String urlstudios = "https://anime.icotaku.com/studios.html#";
 
 
-        scrapAllPages(client, urlThemees);
+        scrapAllPages(client, urlstudios);
     }
 
 

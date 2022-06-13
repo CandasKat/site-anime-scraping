@@ -16,7 +16,7 @@ public class EditorScrap {
         client.getOptions().setCssEnabled(false);
         client.getOptions().setJavaScriptEnabled(false);
 
-        String urlThemees = "https://anime.icotaku.com/editeurs.html#";
+        String urlThemees = "https://manga.icotaku.com/editeurs.html#";
 
 
         scrapAllPages(client, urlThemees);
