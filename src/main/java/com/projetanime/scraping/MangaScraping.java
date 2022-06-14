@@ -1,10 +1,9 @@
 package com.projetanime.scraping;
 
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.gargoylesoftware.htmlunit.html.*;
 import com.projetanime.readFile.ReadFiles;
+import org.apache.commons.lang3.ArrayUtils;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -37,21 +36,26 @@ public class MangaScraping {
             String searchAllUrls = searchUrl + "&page=" + i;
             HtmlPage allPages = client.getPage(searchAllUrls);
 
-            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/a[1]");
+            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/p/a[2]");
             for (HtmlElement item : items){
                 HtmlAnchor itemAnchor = (HtmlAnchor) item;
                 String itemUrl = "https://manga.icotaku.com/" + itemAnchor.getHrefAttribute();
                 allMangas.add(itemUrl);
             }
+
         }
     }
 
     public static void scrapAllPages(WebClient client, List<String> listLinks) throws IOException {
-        FileWriter file = new FileWriter("animes.csv", true);
-        file.write("manga_id;;nom_manga;;pays;;nb_tomes;;annee_edition;;sens_lecture;;editeur_id\n");
+        FileWriter file = new FileWriter("mangas.csv", true);
+        file.write("manga_id;;nom_manga;;pays;;nb_tomes;;annee_edition;;sens_lecture;;magazine_id;;editeur_id\n");
+        File file1 = new File("mangasThemesGenres.csv");
+        FileWriter genreTheme = new FileWriter(file1);
+        genreTheme.write("manga_id;;theme;;genre\n");
         StringBuilder stringBuilder = new StringBuilder();
 
         int id = 1;
+
         for (String link: listLinks){
             stringBuilder.delete(0,stringBuilder.length());
             HtmlPage pageActuel = client.getPage(link);
@@ -69,11 +73,11 @@ public class MangaScraping {
                 informations = pageActuel.getByXPath("//*[@id=\"page\"]/div[4]/div[2]/div");
             }
 
-            stringBuilder.append(id + ";;");
+
             for (HtmlElement item : titre){
                 String titreItem = item.getVisibleText();
                 System.out.println("nom_manga " + titreItem);
-                stringBuilder.append(titreItem+";;");
+                stringBuilder.append(id).append(";;").append(titreItem).append(";;");
 
             }
 
@@ -82,105 +86,84 @@ public class MangaScraping {
                 String titreItem = item.getVisibleText();
                 String[] listItems = titreItem.split("\n");
                 for (int i = 0; i < listItems.length; i++){
+                    if (listItems[i].startsWith("Pays")){
+                        ArrayUtils.remove(listItems, i);
+                        continue;
+                    }
                     String[] itemforMap = listItems[i].split(" : ");
                     stringList.put(itemforMap[0], itemforMap[1]);
                 }
 
+
+                List<HtmlImage> pays = pageActuel.getByXPath("//*[@id=\"page\"]/div[4]/div[2]/div/div[3]/img");
+                for (HtmlImage image: pays) {
+                    stringList.put("Pays", "https://manga.icotaku.com" + image.getSrcAttribute()) ;
+                }
+
+
+
                 if (!stringList.containsKey("Pays") || stringList.get("Pays").equals("?")){
-                    stringBuilder.append("NULL;;");
-                    stringList.clear();
-                    break;
+                   stringBuilder.append("NULL;;");
+
                 }
                 else {
                     stringBuilder.append(stringList.get("Pays") + ";;");
-                    stringList.clear();
-                    break;
+
                 }
-
-            }
-
-            for (HtmlElement item : informations){
-                HashMap<String,String> stringList = new HashMap<>();
-                String titreItem = item.getVisibleText();
-                String[] listItems = titreItem.split("\n");
-                for (int i = 0; i < listItems.length; i++){
-                    String[] itemforMap = listItems[i].split(" : ");
-                    stringList.put(itemforMap[0], itemforMap[1]);
-                }
-
                 if (!stringList.containsKey("Nombre de tomes") || stringList.get("Nombre de tomes").equals("?")){
                     stringBuilder.append("NULL;;");
-                    stringList.clear();
-                    break;
+
                 }
                 else {
                     stringBuilder.append(stringList.get("Nombre de tomes") + ";;");
-                    stringList.clear();
-                    break;
+
                 }
-            }
-
-
-
-            for (HtmlElement item : informations){
-                HashMap<String,String> stringList = new HashMap<>();
-                String titreItem = item.getVisibleText();
-                String[] listItems = titreItem.split("\n");
-                for (int i = 0; i < listItems.length; i++){
-                    String[] itemforMap = listItems[i].split(" : ");
-                    stringList.put(itemforMap[0], itemforMap[1]);
-                }
-
                 if (!stringList.containsKey("Année de publication") || stringList.get("Année de publication").equals("?")){
                     stringBuilder.append("NULL;;");
-                    stringList.clear();
-                    break;
+
                 }
                 else {
                     stringBuilder.append(stringList.get("Année de publication") + ";;");
-                    stringList.clear();
-                    break;
-                }
-            }
 
-
-            for (HtmlElement item : informations){
-                HashMap<String,String> stringList = new HashMap<>();
-                String titreItem = item.getVisibleText();
-                String[] listItems = titreItem.split("\n");
-                for (int i = 0; i < listItems.length; i++){
-                    String[] itemforMap = listItems[i].split(" : ");
-                    stringList.put(itemforMap[0], itemforMap[1]);
                 }
 
                 if (!stringList.containsKey("Sens de lecture") || stringList.get("Sens de lecture").equals("?")){
                     stringBuilder.append("NULL;;");
-                    stringList.clear();
-                    break;
                 }
                 else {
                     stringBuilder.append(stringList.get("Sens de lecture") + ";;");
-                    stringList.clear();
-                    break;
                 }
-            }
 
-            ReadFiles readEditeur = new ReadFiles();
-            Map<String, String> editeurs = readEditeur.byBufferedReader("studio.csv");
+                ReadFiles readEditeur = new ReadFiles();
+                Map<String, String> magazines = readEditeur.byBufferedReader("magazines.csv");
+                Map<String, String> editeurs = readEditeur.byBufferedReader("editor.csv");
+                Map<String, String> themes = readEditeur.byBufferedReader("themes.csv");
+                Map<String, String> genres = readEditeur.byBufferedReader("genres.csv");
 
-            List<String> editeurslistes = new ArrayList<>();
-            for (HtmlElement item : informations){
-                HashMap<String,String> stringList = new HashMap<>();
-                String titreItem = item.getVisibleText();
-                String[] listItems = titreItem.split("\n");
-                for (int i = 0; i < listItems.length; i++){
-                    String[] itemforMap = listItems[i].split(" : ");
-                    stringList.put(itemforMap[0], itemforMap[1]);
+                if (!stringList.containsKey("Magazine de publication") || stringList.get("Magazine de publication").equals("?")){
+                    stringBuilder.append("NULL;;");
                 }
+                else {
+                    String[] listValue = stringList.get("Magazine de publication").split(", ");
+                    List<String> listmagazine = new LinkedList<>(Arrays.asList(listValue));
+                    for (int i = 0; i < listmagazine.size(); i++) {
+                        if (i != 0 && listmagazine.get(i).equals(listmagazine.get(i - 1))) {
+                            listmagazine.remove(i);
+                            continue;
+                        }
+                        if (magazines.containsValue(listmagazine.get(i))) {
+                            String tempMagazine = String.valueOf(readEditeur.getKeys(magazines, listmagazine.get(i)));
+                            tempMagazine = tempMagazine.replaceAll("\\[", "");
+                            tempMagazine = tempMagazine.replaceAll("\\]", "");
+                            stringBuilder.append(tempMagazine + ";;");
+                        }
+                    }
+                }
+
+
 
                 if (!stringList.containsKey("Editeur original") || stringList.get("Editeur original").equals("?")){
                     stringBuilder.append("NULL\n");
-                    stringList.clear();
                     break;
                 }
                 else {
@@ -196,14 +179,71 @@ public class MangaScraping {
                             tempEditeur = tempEditeur.replaceAll("\\[", "");
                             tempEditeur = tempEditeur.replaceAll("\\]", "");
                             stringBuilder.append(tempEditeur + "\n");
-
-                            break;
-
                         }
                     }
                 }
             }
 
+
+            ReadFiles readEditeur = new ReadFiles();
+            Map<String, String> themes = readEditeur.byBufferedReader("themes.csv");
+            Map<String, String> genres = readEditeur.byBufferedReader("genres.csv");
+            StringBuilder forRelation = new StringBuilder();
+            forRelation.append(id + ";;");
+            for (HtmlElement item : informations) {
+                HashMap<String, String> stringList = new HashMap<>();
+                String titreItem = item.getVisibleText();
+                String[] listItems = titreItem.split("\n");
+                for (int i = 0; i < listItems.length; i++) {
+                    if (listItems[i].startsWith("Pays")) {
+                        ArrayUtils.remove(listItems, i);
+                        continue;
+                    }
+                    String[] itemforMap = listItems[i].split(" : ");
+                    stringList.put(itemforMap[0], itemforMap[1]);
+                }
+
+
+                if (!stringList.containsKey("Thèmes") || stringList.get("Thèmes").equals("?")) {
+                    forRelation.append("NULL;;");
+                } else {
+                    String[] listValue = stringList.get("Thèmes").split(", ");
+                    List<String> listtheme = new LinkedList<>(Arrays.asList(listValue));
+                    for (int i = 0; i < listtheme.size(); i++) {
+                        if (i != 0 && listtheme.get(i).equals(listtheme.get(i - 1))) {
+                            listtheme.remove(i);
+                            continue;
+                        }
+                        if (themes.containsValue(listtheme.get(i))) {
+                            String tempTheme = String.valueOf(readEditeur.getKeys(themes, listtheme.get(i)));
+                            tempTheme = tempTheme.replaceAll("\\[", "");
+                            tempTheme = tempTheme.replaceAll("\\]", "");
+                            forRelation.append(tempTheme + ";;");
+                        }
+                    }
+                }
+
+                if (!stringList.containsKey("Genres") || stringList.get("Genres").equals("?")) {
+                    forRelation.append("NULL\n");
+                } else {
+                    String[] listValue = stringList.get("Genres").split(", ");
+                    List<String> listgenre = new LinkedList<>(Arrays.asList(listValue));
+                    for (int i = 0; i < listgenre.size(); i++) {
+                        if (i != 0 && listgenre.get(i).equals(listgenre.get(i - 1))) {
+                            listgenre.remove(i);
+                            continue;
+                        }
+                        if (genres.containsValue(listgenre.get(i))) {
+                            String tempGenre = String.valueOf(readEditeur.getKeys(genres, listgenre.get(i)));
+                            tempGenre = tempGenre.replaceAll("\\[", "");
+                            tempGenre = tempGenre.replaceAll("\\]", "");
+                            forRelation.append(tempGenre + "\n");
+                        }
+                    }
+                }
+            }
+            genreTheme.write(String.valueOf(forRelation));
+            forRelation.delete(0,forRelation.length());
             id++;
             file.write(String.valueOf(stringBuilder));
         }

@@ -36,10 +36,12 @@ public class NovelScraping {
             numeroLastPage = Integer.parseInt(numero[0]);
         }
 
+
         for (int i = 1;i <= numeroLastPage;i++){
             String searchAllUrls = searchUrl + "&page=" + i;
             HtmlPage allPages = client.getPage(searchAllUrls);
-
+//*[@id="page"]/table/tbody/tr[2]/td[1]/div/a[1]
+            //*[@id="page"]/table/tbody/tr[2]/td[1]/div/p[1]/a[1]
             List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/a[1]");
             for (HtmlElement item : items){
                 HtmlAnchor itemAnchor = (HtmlAnchor) item;
