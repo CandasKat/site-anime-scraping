@@ -10,25 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class EditorScrap {
-    public static void main(String[] args) throws IOException {
-        List<String> allGenres = new ArrayList<>();
-        WebClient client = new WebClient();
-        client.getOptions().setCssEnabled(false);
-        client.getOptions().setJavaScriptEnabled(false);
-
-        String urlThemees = "https://manga.icotaku.com/editeurs.html#";
-
-
-        scrapAllPages(client, urlThemees);
-    }
-
-
-    public static void scrapAllPages(WebClient client, String urlGenres) throws IOException {
+    public static void scrapAllPages(WebClient client) throws IOException {
+        String urlThemes = "https://manga.icotaku.com/editeurs.html#";
         FileWriter file = new FileWriter("editor.csv", true);
         file.write("editor_id;editor\n");
         int id = 1;
 
-        HtmlPage pageActuel = client.getPage(urlGenres);
+        HtmlPage pageActuel = client.getPage(urlThemes);
 
         List<HtmlElement> genres1 = pageActuel.getByXPath("//*[@id=\"listecontenu\"]/div/div/a");
 

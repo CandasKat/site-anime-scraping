@@ -1,7 +1,10 @@
-package com.projetanime.scraping;
+package com.projetanime.database;
 
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.*;
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
+import com.gargoylesoftware.htmlunit.html.HtmlImage;
+import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.projetanime.readFile.ReadFiles;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -10,8 +13,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
-public class MangaScraping {
-    public static void mangas_parser(WebClient client, String searchUrl, List<String> allMangas) throws IOException {
+public class ImportDramas {
+    private static void dramas_parser(WebClient client, String searchUrl, List<String> allDramas) throws IOException {
         int numeroLastPage = 0;
         HtmlPage page = client.getPage(searchUrl);
 
@@ -27,11 +30,11 @@ public class MangaScraping {
             String searchAllUrls = searchUrl + "&page=" + i;
             HtmlPage allPages = client.getPage(searchAllUrls);
 
-            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/p/a[2]");
+            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/a[1]");
             for (HtmlElement item : items){
                 HtmlAnchor itemAnchor = (HtmlAnchor) item;
-                String itemUrl = "https://manga.icotaku.com/" + itemAnchor.getHrefAttribute();
-                allMangas.add(itemUrl);
+                String itemUrl = "https://drama.icotaku.com/" + itemAnchor.getHrefAttribute();
+                allDramas.add(itemUrl);
             }
 
         }
@@ -94,7 +97,7 @@ public class MangaScraping {
 
 
                 if (!stringList.containsKey("Pays") || stringList.get("Pays").equals("?")){
-                   stringBuilder.append("NULL;;");
+                    stringBuilder.append("NULL;;");
 
                 }
                 else {
@@ -270,3 +273,5 @@ public class MangaScraping {
 
     }
 }
+
+

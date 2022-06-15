@@ -12,18 +12,6 @@ import java.io.IOException;
 import java.util.*;
 
 public class NovelScraping {
-    public static void main(String[] args) throws IOException {
-        List<String> allNovels = new ArrayList<>();
-        WebClient client = new WebClient();
-        client.getOptions().setCssEnabled(false);
-        client.getOptions().setJavaScriptEnabled(false);
-        String searchUrlForNovels = "https://novel.icotaku.com/novels.html?filter=all";
-
-        novels_parser(client, searchUrlForNovels, allNovels);
-        scrapAllPages(client,allNovels);
-    }
-
-
     public static void novels_parser(WebClient client, String searchUrl, List<String> allNovels) throws IOException {
         int numeroLastPage = 0;
         HtmlPage page = client.getPage(searchUrl);
@@ -170,7 +158,6 @@ public class NovelScraping {
             ReadFiles readEditeur = new ReadFiles();
             Map<String, String> editeurs = readEditeur.byBufferedReader("studio.csv");
 
-            List<String> editeurslistes = new ArrayList<>();
             for (HtmlElement item : informations){
                 HashMap<String,String> stringList = new HashMap<>();
                 String titreItem = item.getVisibleText();

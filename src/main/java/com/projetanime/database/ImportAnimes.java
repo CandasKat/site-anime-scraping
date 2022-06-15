@@ -3,22 +3,13 @@ package com.projetanime.database;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.sql.*;
-import java.text.DateFormat;
 
-public class ConnectionDB {
-    public static void main(String[] args) throws SQLException {
-        ConnectionDB connectionDB = new ConnectionDB();
-        //connectionDB.importerStudio();
-        //connectionDB.importerAnime();
-        connectionDB.importerCommune();
-
-    }
+public class ImportAnimes {
     private static Connection con = null;
-
     private static Statement statement = null;
     private static PreparedStatement preparedStatement = null;
 
-    public ConnectionDB(){
+    public ImportAnimes(){
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -82,7 +73,7 @@ public class ConnectionDB {
 
     }
 
-    public void importerTheme() throws SQLException {
+    public static void importerTheme() throws SQLException {
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -126,7 +117,7 @@ public class ConnectionDB {
 
     }
 
-    public void importerGenre() throws SQLException {
+    public static void importerGenre() throws SQLException {
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -170,7 +161,7 @@ public class ConnectionDB {
 
     }
 
-    public void importerStudio() throws SQLException {
+    public static void importerStudio() throws SQLException {
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -214,7 +205,7 @@ public class ConnectionDB {
 
     }
 
-    public void importerAnime() throws SQLException {
+    public static void importerAnime() throws SQLException {
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -301,7 +292,7 @@ public class ConnectionDB {
         }
 
     }
-    public void importerCommune() throws SQLException {
+    public static void importerCommune() throws SQLException {
         String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");

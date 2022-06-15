@@ -9,9 +9,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class ReadFiles {
-    public static void main(String[] args) throws IOException {
-        System.out.println(byBufferedReader("editor.csv").size());
-    }
     public static Map<String, String> byBufferedReader (String filepath) throws IOException {
         HashMap<String,String > map = new HashMap<>();
         String line;

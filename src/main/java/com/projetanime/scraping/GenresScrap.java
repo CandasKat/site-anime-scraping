@@ -11,20 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GenresScrap {
-    public static void main(String[] args) throws IOException {
-        List<String> allGenres = new ArrayList<>();
-        WebClient client = new WebClient();
-        client.getOptions().setCssEnabled(false);
-        client.getOptions().setJavaScriptEnabled(false);
-
+    public static void scrapAllPages(WebClient client) throws IOException {
         String urlGenres = "https://anime.icotaku.com/genres.html#";
-
-
-        scrapAllPages(client, urlGenres);
-    }
-
-
-    public static void scrapAllPages(WebClient client, String urlGenres) throws IOException {
         FileWriter file = new FileWriter("genres.csv", true);
         file.write("genre_id;genre\n");
         int id = 1;
