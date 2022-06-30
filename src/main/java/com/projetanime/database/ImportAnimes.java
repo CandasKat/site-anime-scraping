@@ -25,7 +25,7 @@ public class ImportAnimes {
         }
     }
 
-    public void createTables(){
+    public static void createTables(){
         String queryForAnime = "CREATE TABLE IF NOT EXISTS animes (" +
                 "anime_id INT AUTO_INCREMENT PRIMARY KEY," +
                 "nom_anime VARCHAR(250)," +

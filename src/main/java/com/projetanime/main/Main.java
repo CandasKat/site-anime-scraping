@@ -5,11 +5,9 @@ import com.projetanime.database.ImportAnimes;
 import com.projetanime.database.ImportDramas;
 import com.projetanime.database.ImportMangas;
 import com.projetanime.database.ImportNovels;
-import com.projetanime.scraping.AnimeScraping;
-import com.projetanime.scraping.DramaScraping;
-import com.projetanime.scraping.MangaScraping;
-import com.projetanime.scraping.NovelScraping;
+import com.projetanime.scraping.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -35,7 +33,27 @@ public class Main {
         String searchUrlForDramas = "https://drama.icotaku.com/dramas.html?filter=all";
 
 
-
+        if(! new File("editor.csv").exists()){
+            EditorScrap.scrapAllPages(client);
+        }
+        if(! new File("editorNovels.csv").exists()){
+            EditorNovels.scrapAllPages(client);
+        }
+        if(! new File("genres.csv").exists()){
+            GenresScrap.scrapAllPages(client);
+        }
+        if(! new File("magazines.csv").exists()){
+            MagazineScrap.scrapAllPages(client);
+        }
+        if(! new File("studio.csv").exists()){
+            StudioScrap.scrapAllPages(client);
+        }
+        if(! new File("themes.csv").exists()){
+            ThemeScrap.scrapAllPages(client);
+        }
+        if(! new File("studiosDramas.csv").exists()){
+            StudioDramas.scrapAllPages(client);
+        }
 
         boolean isFalse = true;
         while (isFalse){
@@ -53,40 +71,55 @@ public class Main {
             System.out.println("================================================================================");
             Scanner scanner = new Scanner(System.in);
             int choix = scanner.nextInt();
-            if (choix > 8 || choix < 1 || !Character.isDigit(choix)){
-                System.out.println("Veuillez entrer un choix valide.");
-                continue;
-            } else if (choix == 9) {
+            scanner.nextLine();
+            if (choix == 9) {
                 System.exit(0);
             } else if (choix == 1) {
+
                 AnimeScraping.anime_parser(client,searchUrlForAnimes,allAnimes);
                 AnimeScraping.scrapAllPages(client,allAnimes);
             }
             else if (choix == 2) {
-                MangaScraping.mangas_parser(client,searchUrlForAnimes,allMangas);
-                MangaScraping.scrapAllPages(client,allAnimes);
+                MangaScraping.mangas_parser(client,searchUrlForMangas,allMangas);
+                MangaScraping.scrapAllPages(client,allMangas);
             }
             else if (choix == 3) {
-                NovelScraping.novels_parser(client,searchUrlForAnimes,allNovels);
-                NovelScraping.scrapAllPages(client,allAnimes);
+                NovelScraping.novels_parser(client,searchUrlForNovels,allNovels);
+                NovelScraping.scrapAllPages(client,allNovels);
             }
             else if (choix == 4) {
-
+                DramaScraping.drama_parser(client,searchUrlForDramas,allDramas);
+                DramaScraping.scrapAllPages(client,allDramas);
             }
             else if (choix == 5) {
+                //ImportAnimes.createTables();
                 ImportAnimes.importerGenre();
                 ImportAnimes.importerTheme();
                 ImportAnimes.importerAnime();
                 ImportAnimes.importerCommune();
             }
             else if (choix == 6) {
-
+                ImportMangas importMangas = new ImportMangas();
+                importMangas.createTables();
+                //ImportMangas.importerMagazine();
+               // ImportMangas.importerTheme();
+                //ImportMangas.importerGenre();
+                //importMangas.importerManga();
+                //importMangas.importerCommune();
             }
             else if (choix == 7) {
-
+                ImportNovels.createTables();
+                //ImportNovels.importerEditor();
+                //ImportNovels.importerGenre();
+                //ImportNovels.importerTheme();
+                ImportNovels.importerNovels();
             }
             else if (choix == 8) {
-
+                ImportDramas importDramas = new ImportDramas();
+                importDramas.createTables();
+                //ImportDramas.importerStudio();
+                importDramas.importerDrama();
+                importDramas.importerCommune();
             }
 
 

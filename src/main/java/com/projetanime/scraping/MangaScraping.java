@@ -39,7 +39,7 @@ public class MangaScraping {
 
     public static void scrapAllPages(WebClient client, List<String> listLinks) throws IOException {
         FileWriter file = new FileWriter("mangas.csv", true);
-        file.write("manga_id;;nom_manga;;pays;;nb_tomes;;annee_edition;;sens_lecture;;magazine_id;;editeur_id\n");
+        file.write("manga_id;;nom_manga;;pays;;nb_tomes;;annee_edition;;sens_lecture;;magazine_id;;editor_id\n");
         File file1 = new File("mangasThemesGenres.csv");
         FileWriter genreTheme = new FileWriter(file1);
         genreTheme.write("manga_id;;theme;;genre\n");

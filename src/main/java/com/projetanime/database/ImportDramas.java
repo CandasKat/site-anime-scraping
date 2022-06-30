@@ -1,276 +1,368 @@
 package com.projetanime.database;
 
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlImage;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.projetanime.readFile.ReadFiles;
-import org.apache.commons.lang3.ArrayUtils;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.*;
+import java.io.*;
+import java.sql.*;
+import java.sql.Date;
 
 public class ImportDramas {
-    private static void dramas_parser(WebClient client, String searchUrl, List<String> allDramas) throws IOException {
-        int numeroLastPage = 0;
-        HtmlPage page = client.getPage(searchUrl);
+    private static Connection con = null;
+    private static Statement statement = null;
+    private static PreparedStatement preparedStatement = null;
 
-        List<HtmlElement> dernierPage = page.getByXPath("//*[@id=\"page\"]/div[4]/div/a[8]");
-        for (HtmlElement dernier : dernierPage){
-            HtmlAnchor dernierAnchor = (HtmlAnchor) dernier;
-            String[] numero = String.valueOf(dernierAnchor.getHrefAttribute()).split("page=");
-            numero = numero[1].split("\"");
-            numeroLastPage = Integer.parseInt(numero[0]);
+    public ImportDramas(){
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
         }
-
-        for (int i = 1;i <= numeroLastPage;i++){
-            String searchAllUrls = searchUrl + "&page=" + i;
-            HtmlPage allPages = client.getPage(searchAllUrls);
-
-            List<HtmlElement> items = allPages.getByXPath("//*[@id=\"page\"]/table/tbody/tr/td/div/a[1]");
-            for (HtmlElement item : items){
-                HtmlAnchor itemAnchor = (HtmlAnchor) item;
-                String itemUrl = "https://drama.icotaku.com/" + itemAnchor.getHrefAttribute();
-                allDramas.add(itemUrl);
-            }
-
+        try {
+            con = DriverManager.getConnection(url, Database.user, Database.password);
+            System.out.println("Connexion réussie");
+            createTables();
+        } catch (Exception ex){
+            System.out.println("La connexion a échoué");
         }
     }
 
-    public static void scrapAllPages(WebClient client, List<String> listLinks) throws IOException {
-        FileWriter file = new FileWriter("mangas.csv", true);
-        file.write("manga_id;;nom_manga;;pays;;nb_tomes;;annee_edition;;sens_lecture;;magazine_id;;editeur_id\n");
-        File file1 = new File("mangasThemesGenres.csv");
-        FileWriter genreTheme = new FileWriter(file1);
-        genreTheme.write("manga_id;;theme;;genre\n");
-        StringBuilder stringBuilder = new StringBuilder();
+    public static void createTables(){
+        String queryForAnime = "CREATE TABLE IF NOT EXISTS dramas (" +
+                "drama_id INT AUTO_INCREMENT PRIMARY KEY," +
+                "nom_drama VARCHAR(250)," +
+                "pays VARCHAR(250)," +
+                "nb_film INT," +
+                "duree_film INT," +
+                "annee_diffusion DATE," +
+                "studio_id INT," +
+                "FOREIGN KEY (studio_id) REFERENCES studiosdramas(studio_id))";
 
-        int id = 1;
+        String queryForStudios = "CREATE TABLE IF NOT EXISTS studiosdramas (" +
+                "studio_id INT AUTO_INCREMENT PRIMARY KEY," +
+                "studio VARCHAR(150))";
 
-        for (String link: listLinks){
-            stringBuilder.delete(0,stringBuilder.length());
-            HtmlPage pageActuel = client.getPage(link);
-            List<HtmlElement> titre = pageActuel.getByXPath("//*[@id=\"fiche_entete\"]/div/h1");
-            List<HtmlElement> informations;
+        String queryForTablesCommunes = "CREATE TABLE IF NOT EXISTS dramas_themes_genres (" +
+                "drama_id INT," +
+                "theme INT," +
+                "genre INT," +
+                "FOREIGN KEY (drama_id) REFERENCES dramas(drama_id)," +
+                "FOREIGN KEY (theme) REFERENCES themes(theme_id)," +
+                "FOREIGN KEY (genre) REFERENCES genres(genre_id))";
 
-            if (!pageActuel.getByXPath("//*[@id=\"divFicheHentai\"]").isEmpty() && !pageActuel.getByXPath("//*[@id=\"divFicheError\"]").isEmpty()){
-                informations = pageActuel.getByXPath("//*[@id=\"page\"]/div[6]/div[2]/div/div");
-            }
-            else if (!pageActuel.getByXPath("//*[@id=\"divFicheHentai\"]").isEmpty()){
-                informations = pageActuel.getByXPath("//*[@id=\"page\"]/div[5]/div[2]/div/div");
-            } else if (!pageActuel.getByXPath("//*[@id=\"divFicheError\"]").isEmpty()) {
-                informations = pageActuel.getByXPath("//*[@id=\"page\"]/div[5]/div[2]/div/div");
-            } else {
-                informations = pageActuel.getByXPath("//*[@id=\"page\"]/div[4]/div[2]/div");
-            }
+        String queryForGenres = "CREATE TABLE IF NOT EXISTS genres (" +
+                "genre_id INT AUTO_INCREMENT PRIMARY KEY," +
+                "genre VARCHAR(150))";
 
-
-            for (HtmlElement item : titre){
-                String titreItem = item.getVisibleText();
-                System.out.println("nom_manga " + titreItem);
-                stringBuilder.append(id).append(";;").append(titreItem).append(";;");
-
-            }
-
-            for (HtmlElement item : informations){
-                HashMap<String,String> stringList = new HashMap<>();
-                String titreItem = item.getVisibleText();
-                String[] listItems = titreItem.split("\n");
-                for (int i = 0; i < listItems.length; i++){
-                    if (listItems[i].startsWith("Pays")){
-                        ArrayUtils.remove(listItems, i);
-                        continue;
-                    }
-                    String[] itemforMap = listItems[i].split(" : ");
-                    stringList.put(itemforMap[0], itemforMap[1]);
-                }
-
-
-                List<HtmlImage> pays = pageActuel.getByXPath("//*[@id=\"page\"]/div[4]/div[2]/div/div[3]/img");
-                for (HtmlImage image: pays) {
-                    stringList.put("Pays", "https://manga.icotaku.com" + image.getSrcAttribute()) ;
-                }
-
-
-
-                if (!stringList.containsKey("Pays") || stringList.get("Pays").equals("?")){
-                    stringBuilder.append("NULL;;");
-
-                }
-                else {
-                    stringBuilder.append(stringList.get("Pays") + ";;");
-
-                }
-                if (!stringList.containsKey("Nombre de tomes") || stringList.get("Nombre de tomes").equals("?")){
-                    stringBuilder.append("NULL;;");
-
-                }
-                else {
-                    stringBuilder.append(stringList.get("Nombre de tomes") + ";;");
-
-                }
-                if (!stringList.containsKey("Année de publication") || stringList.get("Année de publication").equals("?")){
-                    stringBuilder.append("NULL;;");
-
-                }
-                else {
-                    stringBuilder.append(stringList.get("Année de publication") + ";;");
-
-                }
-
-                if (!stringList.containsKey("Sens de lecture") || stringList.get("Sens de lecture").equals("?")){
-                    stringBuilder.append("NULL;;");
-                }
-                else {
-                    stringBuilder.append(stringList.get("Sens de lecture") + ";;");
-                }
-
-                ReadFiles readEditeur = new ReadFiles();
-                Map<String, String> magazines = readEditeur.byBufferedReader("magazines.csv");
-                Map<String, String> editeurs = readEditeur.byBufferedReader("editor.csv");
-                Map<String, String> themes = readEditeur.byBufferedReader("themes.csv");
-                Map<String, String> genres = readEditeur.byBufferedReader("genres.csv");
-
-                if (!stringList.containsKey("Magazine de publication") || stringList.get("Magazine de publication").equals("?")){
-                    stringBuilder.append("NULL;;");
-                }
-                else {
-                    String[] listValue = stringList.get("Magazine de publication").split(", ");
-                    List<String> listmagazine = new LinkedList<>(Arrays.asList(listValue));
-                    for (int i = 0; i < listmagazine.size(); i++) {
-                        if (i != 0 && listmagazine.get(i).equals(listmagazine.get(i - 1))) {
-                            listmagazine.remove(i);
-                            continue;
-                        }
-                        if (magazines.containsValue(listmagazine.get(i))) {
-                            String tempMagazine = String.valueOf(readEditeur.getKeys(magazines, listmagazine.get(i)));
-                            tempMagazine = tempMagazine.replaceAll("\\[", "");
-                            tempMagazine = tempMagazine.replaceAll("\\]", "");
-                            stringBuilder.append(tempMagazine + ";;");
-                        }
-                    }
-                }
-
-
-
-                if (!stringList.containsKey("Editeur original") || stringList.get("Editeur original").equals("?")){
-                    stringBuilder.append("NULL\n");
-                    break;
-                }
-                else {
-                    String[] listValue = stringList.get("Editeur original").split(", ");
-                    List<String> listediteur = new LinkedList<>(Arrays.asList(listValue));
-                    for (int i = 0; i < listediteur.size(); i++) {
-                        if (i != 0 && listediteur.get(i).equals(listediteur.get(i - 1))) {
-                            listediteur.remove(i);
-                            continue;
-                        }
-                        if (editeurs.containsValue(listediteur.get(i))) {
-                            String tempEditeur = String.valueOf(readEditeur.getKeys(editeurs, listediteur.get(i)));
-                            tempEditeur = tempEditeur.replaceAll("\\[", "");
-                            tempEditeur = tempEditeur.replaceAll("\\]", "");
-                            stringBuilder.append(tempEditeur + "\n");
-                        }
-                    }
-                }
-            }
-
-
-            ReadFiles readEditeur = new ReadFiles();
-            Map<String, String> themes = readEditeur.byBufferedReader("themes.csv");
-            Map<String, String> genres = readEditeur.byBufferedReader("genres.csv");
-            List<String> themeslistes = new ArrayList<>();
-            List<String> genreslistes = new ArrayList<>();
-            for (HtmlElement item : informations) {
-                HashMap<String, String> stringList = new HashMap<>();
-                String titreItem = item.getVisibleText();
-                String[] listItems = titreItem.split("\n");
-                for (int i = 0; i < listItems.length; i++) {
-                    if (listItems[i].startsWith("Pays")) {
-                        ArrayUtils.remove(listItems, i);
-                        continue;
-                    }
-                    String[] itemforMap = listItems[i].split(" : ");
-                    stringList.put(itemforMap[0], itemforMap[1]);
-                }
-
-
-                if (!stringList.containsKey("Thèmes") || stringList.get("Thèmes").equals("?")) {
-                    themeslistes.add("NULL");
-                    break;
-                } else {
-                    String[] listValue = stringList.get("Thèmes").split(", ");
-                    List<String> listtheme = new LinkedList<>(Arrays.asList(listValue));
-                    for (int i = 0; i < listtheme.size(); i++) {
-                        if (i != 0 && listtheme.get(i).equals(listtheme.get(i - 1))) {
-                            listtheme.remove(i);
-                            continue;
-                        }
-                        if (themes.containsValue(listtheme.get(i))) {
-                            String tempTheme = String.valueOf(readEditeur.getKeys(themes, listtheme.get(i)));
-                            tempTheme = tempTheme.replaceAll("\\[", "");
-                            tempTheme = tempTheme.replaceAll("\\]", "");
-                            if (listtheme.size() <= 1){
-
-                                themeslistes.add(tempTheme);
-                                break;
-                            }
-                            else {
-                                themeslistes.add(tempTheme);
-
-                            }
-                        }
-                    }
-                }
-
-                if (!stringList.containsKey("Genres") || stringList.get("Genres").equals("?")) {
-                    genreslistes.add("NULL");
-                    break;
-                } else {
-                    String[] listValue = stringList.get("Genres").split(", ");
-                    List<String> listgenre = new LinkedList<>(Arrays.asList(listValue));
-                    for (int i = 0; i < listgenre.size(); i++) {
-                        if (i != 0 && listgenre.get(i).equals(listgenre.get(i - 1))) {
-                            listgenre.remove(i);
-                            continue;
-                        }
-                        if (genres.containsValue(listgenre.get(i))) {
-                            String tempGenre = String.valueOf(readEditeur.getKeys(genres, listgenre.get(i)));
-                            tempGenre = tempGenre.replaceAll("\\[", "");
-                            tempGenre = tempGenre.replaceAll("\\]", "");
-                            if (listgenre.size() <= 1){
-                                genreslistes.add(tempGenre);
-                                break;
-                            }
-                            else {
-                                genreslistes.add(tempGenre);
-                            }
-                        }
-                    }
-                }
-            }
-            StringBuilder themesGenres = new StringBuilder();
-            StringBuilder finaux = new StringBuilder();
-            for (int i = 0 ; i < themeslistes.size(); i++){
-                for (int j = 0; j < genreslistes.size(); j++){
-                    themesGenres.append(themeslistes.get(i) + ";;" + genreslistes.get(j));
-                    finaux.append(id + ";;");
-                    finaux.append(themesGenres  + "\n");
-                    genreTheme.write(String.valueOf(finaux));
-                    themesGenres.delete(0,themesGenres.length());
-                    finaux.delete(0, finaux.length());
-                }
-
-            }
-            id++;
-            file.write(String.valueOf(stringBuilder));
+        String queryForThemes = "CREATE TABLE IF NOT EXISTS themes (" +
+                "theme_id INT AUTO_INCREMENT PRIMARY KEY," +
+                "theme VARCHAR(150))";
+        try {
+            statement = con.createStatement();
+            statement.execute(queryForThemes);
+            statement.execute(queryForGenres);
+            statement.execute(queryForStudios);
+            statement.execute(queryForAnime);
+            statement.execute(queryForTablesCommunes);
+        } catch (SQLException e){
+            e.printStackTrace();
         }
-        genreTheme.close();
-        file.close();
 
+    }
+
+    public static void importerTheme() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvTheme = "themes.csv";
+        int batchSize = 20;
+        try {
+            String sql = "INSERT INTO themes(theme_id, theme) VALUES(?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvTheme));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";");
+                String theme_id = data[0];
+                String theme = data[1];
+                preparedStatement.setString(1,theme_id);
+                preparedStatement.setString(2, theme);
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static void importerGenre() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvGenre = "genres.csv";
+        int batchSize = 20;
+
+        try {
+            String sql = "INSERT INTO genres(genre_id, genre) VALUES(?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvGenre));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";");
+                String genre_id = data[0];
+                String genre = data[1];
+                preparedStatement.setString(1,genre_id);
+                preparedStatement.setString(2, genre);
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static void importerStudio() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvGenre = "studio.csv";
+        int batchSize = 20;
+
+        try {
+            String sql = "INSERT INTO studios(studio_id, studio) VALUES(?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvGenre));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";");
+                String studio_id = data[0];
+                String studio = data[1];
+                preparedStatement.setString(1,studio_id);
+                preparedStatement.setString(2, studio);
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static void importerDrama() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvAnime = "dramas.csv";
+        int batchSize = 20;
+
+        try {
+            String sql = "INSERT INTO dramas(drama_id, nom_drama, pays, nb_film, duree_film, annee_diffusion, studio_id) VALUES(?,?,?,?,?,?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvAnime));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";;");
+                String drama_id = data[0];
+                String nom_drama = data[1];
+                String pays = data[2];
+                String nb_film = data[3];
+                String duree_film = data[4];
+                String annee_diffusion = data[5];
+                String studio_animation = data[6];
+
+
+
+                if (drama_id.equals("NULL")){
+                    preparedStatement.setNull(1,Types.NULL);
+                }else {
+                    preparedStatement.setInt(1, Integer.parseInt(drama_id));
+                }
+
+                preparedStatement.setString(2,nom_drama);
+                if (pays.equals("NULL")){
+                    preparedStatement.setNull(3,Types.NULL);
+                }else {
+                    preparedStatement.setString(3, pays);
+                }
+                if (nb_film.equals("NULL")){
+                    preparedStatement.setNull(4,Types.NULL);
+                }else {
+                    preparedStatement.setInt(4, Integer.parseInt(nb_film));
+                }
+                if (duree_film.equals("NULL")){
+                    preparedStatement.setNull(5,Types.NULL);
+                }else {
+                    preparedStatement.setString(5, duree_film);
+                }
+
+
+                if (annee_diffusion.equals("NULL")){
+                    preparedStatement.setNull(6,Types.NULL);
+                }else {
+                    java.sql.Date date = new Date(Long.parseLong(annee_diffusion));
+                    preparedStatement.setDate(6, date);                }
+
+
+                if (studio_animation.equals("NULL")){
+                    preparedStatement.setNull(7,Types.NULL);
+                }else {
+                    preparedStatement.setInt(7, Integer.parseInt(studio_animation));
+                }
+
+
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+    public static void importerCommune() throws SQLException {
+        String url = "jdbc:mysql://" + Database.host + ":" + Database.port + "/" + Database.db;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException ex){
+            System.out.println("Pilote introuvable...");
+        }
+        con = DriverManager.getConnection(url, Database.user, Database.password);
+        con.setAutoCommit(false);
+        String csvGenre = "dramasThemesGenres.csv";
+        int batchSize = 20;
+
+        try {
+            String sql = "INSERT INTO dramas_themes_genres (drama_id, theme, genre) VALUES(?,?,?)";
+            preparedStatement = con.prepareStatement(sql);
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvGenre));
+            String lineText = null;
+            int count = 0;
+            lineReader.readLine();
+
+            while ((lineText = lineReader.readLine()) != null){
+                String[] data = lineText.split(";;");
+                String drama_id = data[0];
+                String theme = data[1];
+                String genre = data[2];
+
+                if (drama_id.equals("NULL")){
+                    preparedStatement.setNull(1, Types.NULL);
+                }
+                else {
+                    preparedStatement.setInt(1, Integer.parseInt(drama_id));
+                }
+                if (theme.equals("NULL")){
+                    preparedStatement.setNull(2, Types.NULL);
+                }
+                else {
+                    preparedStatement.setInt(2, Integer.parseInt(theme));
+                }
+                if (genre.equals("NULL")){
+                    preparedStatement.setNull(3, Types.NULL);
+                }
+                else {
+                    preparedStatement.setInt(3, Integer.parseInt(genre));
+                }
+
+
+                preparedStatement.addBatch();
+                if (count % batchSize == 0){
+                    preparedStatement.executeBatch();
+                }
+
+            }
+            lineReader.close();
+
+            preparedStatement.executeBatch();
+            con.commit();
+            con.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+
+    static ResultSet selectAll() {
+        try {
+            statement = con.createStatement();
+            String interrogation = "Select * From dramas";
+            ResultSet rs;
+
+            rs = statement.executeQuery(interrogation);
+            return rs;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
 

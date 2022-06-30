@@ -202,7 +202,6 @@ public class AnimeScraping {
             ReadFiles readstudios = new ReadFiles();
             Map<String, String> studios = readstudios.byBufferedReader("studio.csv");
 
-            List<String> studioslistes = new ArrayList<>();
             for (HtmlElement item : informations){
                 HashMap<String,String> stringList = new HashMap<>();
                 String titreItem = item.getVisibleText();
